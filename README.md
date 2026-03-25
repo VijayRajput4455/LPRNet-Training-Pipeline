@@ -370,5 +370,4 @@ This model was trained on a mixed dataset of Chinese blue and green (new-energy)
 ## References
 
 1. [LPRNet: License Plate Recognition via Deep Neural Networks](https://arxiv.org/abs/1806.10447v1)
-2. [sirius-ai/LPRNet_Pytorch](https://github.com/sirius-ai/LPRNet_Pytorch) — original implementation
-3. [PyTorch Documentation](https://pytorch.org/docs/)
+2. [PyTorch Documentation](https://pytorch.org/docs/)
