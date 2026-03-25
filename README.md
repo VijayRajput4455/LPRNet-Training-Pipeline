@@ -1,6 +1,6 @@
 # LPRNet — License Plate Recognition
 
-A PyTorch implementation of **LPRNet**, a lightweight and high-performance License Plate Recognition framework. This project includes a data labeling utility, a training pipeline, and an evaluation script.
+A PyTorch implementation of **LPRNet**, a lightweight and high-performance License Plate Recognition framework. This project includes a training pipeline and an evaluation script.
 
 > Based on the paper: [LPRNet: License Plate Recognition via Deep Neural Networks](https://arxiv.org/abs/1806.10447v1)
 
@@ -14,7 +14,7 @@ A PyTorch implementation of **LPRNet**, a lightweight and high-performance Licen
 - [Installation](#installation)
 - [Dataset](#dataset)
 - [Usage](#usage)
-  - [1. Label Images (demo.py)](#1-label-images-demopy)
+  - [1. Prepare Dataset](#1-prepare-dataset)
   - [2. Train the Model](#2-train-the-model)
   - [3. Test / Evaluate](#3-test--evaluate)
 - [Model Architecture](#model-architecture)
@@ -30,42 +30,32 @@ A PyTorch implementation of **LPRNet**, a lightweight and high-performance Licen
 ## Project Structure
 
 ```
-LPRNET/
+LPRNet-Training-Pipeline/
 ├── README.md
-└── LPRNet_Pytorch/
-    ├── scripts/                         # Entry point scripts
-    │   ├── __init__.py
-    │   ├── train.py                     # Training entry point
-    │   └── test.py                      # Evaluation entry point
-    │
-    ├── lprnet/                          # Core package (modular)
-    │   ├── __init__.py
-    │   ├── data/                        # Data module
-    │   │   ├── __init__.py
-    │   │   └── loader.py                # Dataset & character definitions
-    │   └── model/                       # Model module
-    │       ├── __init__.py
-    │       └── lprnet.py                # Architecture & building functions
-    │
-    ├── data/                            # Dataset (compatibility layer)
-    │   ├── __init__.py
-    │   ├── Dataset/
-    │   │   ├── Images/                  # Training images (94×24)
-    │   │   └── Labels/                  # Label .txt files
-    │   └── test/                        # Evaluation images
-    │
-    ├── outputs/                         # Training artifacts
-    │   ├── checkpoints/                 # Model weights during training
-    │   │   └── *.pth files
-    │   └── logs/                        # Training metrics & loss curves
-    │
-    ├── model/                           # Model (compatibility layer)
-    │   └── __init__.py
-    │
-    ├── weights/                         # Pre-trained model storage
-    │   └── Final_LPRNet_model.pth       # Pre-trained weights
-    │
-    └── demo.py                          # Image labeling utility
+├── scripts/                             # Entry point scripts
+│   ├── train.py                         # Training entry point
+│   └── test.py                          # Evaluation entry point
+│
+├── lprnet/                              # Core package (modular)
+│   ├── data/
+│   │   └── loader.py                    # Dataset loader + character set
+│   └── model/
+│       └── lprnet.py                    # Architecture + model builder
+│
+├── data/                                # Dataset + compatibility exports
+│   ├── Dataset/
+│   │   ├── Images/                      # Training/validation images
+│   │   └── Labels/                      # Optional label text files
+│   └── test/                            # Evaluation images
+│
+├── model/                               # Compatibility exports
+│
+├── outputs/
+│   ├── checkpoints/                     # Optional custom save directory
+│   └── logs/                            # Reserved for logs/plots
+│
+└── weights/
+    └── Final_LPRNet_model.pth           # Default pretrained/final weights
 ```
 
 ### Folder Descriptions
@@ -77,11 +67,11 @@ LPRNET/
 | **lprnet/data/** | Data loading module with `LPRDataLoader` class and character definitions |
 | **lprnet/model/** | Neural network model definitions and factory functions |
 | **data/** | Raw dataset folder. Compatibility layer re-exports from `lprnet/data/` |
-| **outputs/** | Training outputs — checkpoints and logs go here, keeping source code clean |
-| **outputs/checkpoints/** | Model weights saved during training at different epochs |
-| **outputs/logs/** | Training metrics, loss curves, validation results |
+| **outputs/** | Optional location for checkpoints/logs if you override defaults |
+| **outputs/checkpoints/** | Placeholder for custom checkpoint output |
+| **outputs/logs/** | Placeholder for custom logs/metrics |
 | **model/** | Compatibility layer re-exports from `lprnet/model/` |
-| **weights/** | Final pre-trained model storage |
+| **weights/** | Default location where training saves checkpoints/final model |
 
 ---
 
@@ -118,8 +108,6 @@ The `data/` and `model/` folders at the project root provide backward compatibil
 
 ---
 
----
-
 ## Requirements
 
 - Python 3.x
@@ -137,7 +125,7 @@ The `data/` and `model/` folders at the project root provide backward compatibil
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd LPRNET
+cd LPRNet-Training-Pipeline
 
 # Install dependencies
 pip install torch torchvision
@@ -153,7 +141,7 @@ pip install opencv-python imutils Pillow numpy matplotlib
 - Supported formats: `.jpg`, `.jpeg`, `.png`, `.bmp`
 
 ### Naming Convention
-The data loader extracts the license plate label **directly from the image filename**. The filename must follow this pattern:
+The data loader extracts the license plate label **directly from the image filename** using the first token before `-` (or `_`):
 
 ```
 <PLATE_TEXT>-<anything>.jpg
@@ -165,7 +153,7 @@ DL10CJ0330-001.jpg   →   label: DL10CJ0330
 UP84T8969-002.jpg    →   label: UP84T8969
 ```
 
-> **Note:** The current dataset images are named `<timestamp>-<PLATE_TEXT>.jpg`. In this case the data loader will read the timestamp as the label. Rename your images to `<PLATE_TEXT>-<id>.jpg` before training.
+> **Note:** If images are named like `<timestamp>-<PLATE>.jpg`, the loader will treat the timestamp as label. Rename images to `<PLATE_TEXT>-<id>.jpg` before training.
 
 ### Directory Layout
 ```
@@ -174,34 +162,43 @@ data/Dataset/
 │   ├── DL10CJ0330-001.jpg
 │   └── UP84T8969-002.jpg
 └── Labels/
-    ├── DL10CJ0330-001.txt   ← contains: DL10CJ0330
-    └── UP84T8969-002.txt    ← contains: UP84T8969
+  ├── DL10CJ0330-001.txt
+  └── UP84T8969-002.txt
 ```
+
+### Labeling Instructions (TXT Files)
+
+For license plate training datasets, keep one `.txt` file per image in `data/Dataset/Labels/`.
+
+Rules:
+- Label filename must match image filename (same base name).
+- Each `.txt` file must contain the **complete vehicle number plate text**.
+- Use one plate string per file (single line), for example: `DL10CJ0330`.
+- Keep plate text uppercase and without extra spaces.
+
+Example:
+- Image: `data/Dataset/Images/DL10CJ0330-001.jpg`
+- Label: `data/Dataset/Labels/DL10CJ0330-001.txt`
+- File content: `DL10CJ0330`
+
+Current scripts parse labels from image filenames, but keeping correct `.txt` labels is recommended for dataset quality and compatibility with other pipelines.
 
 ---
 
 ## Usage
 
-### 1. Label Images (demo.py)
+### 1. Prepare Dataset
 
-Use this utility to manually label images from the `Images/` folder. It displays each image and prompts you to type the license plate text, saving the result to a `.txt` file in `Labels/`.
-
-```bash
-# Run from the project root
-python demo.py
-```
-
-- **Input directory:** `LPRNet_Pytorch/data/Dataset/Images/`
-- **Output directory:** `LPRNet_Pytorch/data/Dataset/Labels/`
-- For each image, type the plate text and press **Enter**. Type `q` to quit.
+1. Place training/validation images in `data/Dataset/Images/`.
+2. Ensure each filename starts with the true plate text (for example: `DL10CJ0330-001.jpg`).
+3. Create matching `.txt` labels in `data/Dataset/Labels/`, where each file contains the full number plate text.
+4. Place test images in `data/test/`.
 
 ---
 
 ### 2. Train the Model
 
 ```bash
-cd LPRNet_Pytorch
-
 # Quick start (uses default settings)
 python -m scripts.train
 
@@ -213,20 +210,22 @@ python -m scripts.train \
     --train_batch_size 128 \
     --learning_rate 0.1 \
     --cuda True
+
+# Save checkpoints into outputs/checkpoints instead of default weights/
+python -m scripts.train \
+    --save_folder ./outputs/checkpoints/
 ```
 
 **Output:**
-- Checkpoints saved to: `outputs/checkpoints/LPRNet__iteration_<N>.pth` every `--save_interval` steps
-- Final model saved to: `outputs/checkpoints/Final_LPRNet_model.pth`
-- Training logs saved to: `outputs/logs/` (loss curves, metrics)
+- By default, checkpoints are saved to: `weights/LPRNet__iteration_<N>.pth` every `--save_interval` steps
+- Final model is saved to: `weights/Final_LPRNet_model.pth`
+- If `--save_folder ./outputs/checkpoints/` is used, files are saved under `outputs/checkpoints/`
 
 ---
 
 ### 3. Test / Evaluate
 
 ```bash
-cd LPRNet_Pytorch
-
 # Test with pre-trained weights
 python -m scripts.test
 
@@ -245,10 +244,10 @@ python -m scripts.test \
 
 **Output Format:**
 ```
-Test Accuracy: 0.960 [tp:tn_len_mismatch:tn_wrong_chars:total]
+[Info] Test Accuracy: 0.960 [tp:tn_len_mismatch:tn_wrong_chars:total]
 ```
 
-**Note:** By default, the script loads from `./weights/Final_LPRNet_model.pth`. After training, you can copy the best checkpoint from `outputs/checkpoints/` to `weights/` for evaluation.
+**Note:** By default, the script loads from `./weights/Final_LPRNet_model.pth`. If you train with a custom `--save_folder`, pass that model path via `--pretrained_model`.
 
 ---
 
@@ -301,7 +300,7 @@ Features are extracted at layers **2, 6, 13, 22**, spatially aligned via `AvgPoo
 | `--test_batch_size` | `120` | Validation batch size |
 | `--cuda` | `True` | Use GPU (set `False` for CPU) |
 | `--resume_epoch` | `0` | Resume training from this epoch |
-| `--save_interval` | `2000` | Save checkpoint every N iterations (saved to `outputs/checkpoints/`) |
+| `--save_interval` | `2000` | Save checkpoint every N iterations |
 | `--test_interval` | `2000` | Run evaluation every N iterations |
 | `--momentum` | `0.9` | RMSprop momentum |
 | `--weight_decay` | `2e-5` | L2 regularization |
@@ -309,8 +308,8 @@ Features are extracted at layers **2, 6, 13, 22**, spatially aligned via `AvgPoo
 | `--pretrained_model` | `""` | Path to pre-trained weights (optional) |
 
 **Output Locations:**
-- Checkpoints: `outputs/checkpoints/` — model weights at each save interval
-- Training logs: `outputs/logs/` — loss curves and metrics
+- Default checkpoints: `weights/` — model weights at each save interval
+- Optional custom checkpoints: set `--save_folder`, e.g. `./outputs/checkpoints/`
 
 ---
 
@@ -349,7 +348,7 @@ The model recognises **36 characters** (37 including the CTC blank token):
 A pre-trained model is included at:
 
 ```
-LPRNet_Pytorch/weights/Final_LPRNet_model.pth
+weights/Final_LPRNet_model.pth
 ```
 
 This model was trained on a mixed dataset of Chinese blue and green (new-energy) license plates.
